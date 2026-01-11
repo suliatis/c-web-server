@@ -44,8 +44,8 @@ int main() {
   while (bytes_read > 0) {
     bytes_read = read(open_file, read_buffer, 256);
     printf("[SERVER] bytes read: %zd\n", bytes_read);
-    ssize_t byetes_wrote = write(accepted, read_buffer, bytes_read);
-    printf("[SERVER] bytes wrote: %zd\n", byetes_wrote);
+    ssize_t bytes_wrote = write(accepted, read_buffer, bytes_read);
+    printf("[SERVER] bytes wrote: %zd\n", bytes_wrote);
   }
 
   close(open_file);
