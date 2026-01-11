@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/_endian.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -14,7 +15,7 @@ int main() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   printf("[SERVER] socket: %d\n", sock);
   int port = htons(8080);
-  printf("[SERVER] port: %d\n", port);
+  printf("[SERVER] port: %d\n", ntohs(port));
   struct sockaddr_in addr_in = {
       .sin_family = AF_INET,
       .sin_port = port,
