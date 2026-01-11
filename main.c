@@ -17,7 +17,7 @@ int main() {
   struct sockaddr_in addr_in = {
       .sin_family = AF_INET,
       .sin_port = port,
-      .sin_addr = 0,
+      .sin_addr.s_addr = INADDR_ANY,
   };
   int bound = bind(sock, (struct sockaddr *)&addr_in, sizeof(addr_in));
   printf("[SERVER] bound: %d\n", bound);
