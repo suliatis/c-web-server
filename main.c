@@ -37,6 +37,19 @@ int main() {
   int open_file = open(path, O_RDONLY);
   printf("[SERVER] file opened: %d\n", open_file);
 
+  char *statusline = "HTTP/1.1 200 OK\r\n";
+  char *contenttype = "Content-Type: text/html\r\n";
+  // TODO: implement content length in bytes
+  // char *contentlength = "Content-Length: 1\r\n";
+  char *connection = "Connection: close\r\n";
+  char *empty = "\r\n";
+
+  write(accepted, statusline, strlen(statusline));
+  write(accepted, contenttype, strlen(contenttype));
+  // write(accepted, contentlength, strlen(contentlength));
+  write(accepted, connection, strlen(connection));
+  write(accepted, empty, strlen(empty));
+
   char read_buffer[256] = {0};
   ssize_t bytes_read = 1;
   while (bytes_read > 0) {
