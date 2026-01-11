@@ -36,9 +36,9 @@ int main() {
   char *path = request_buffer + 5; // skipping the method
   *strchr(path, ' ') = 0;          // remove anything after the first space
   char relative_path[256] = {0};
-  sprintf(relative_path, "%s%s", ".", path);
+  sprintf(relative_path, "%s%s", ".", relative_path);
   printf("[SERVER] path resolved: %s\n", relative_path);
-  int open_file = open(path, O_RDONLY);
+  int open_file = open(relative_path, O_RDONLY);
   printf("[SERVER] file opened: %d\n", open_file);
 
   char read_buffer[256] = {0};
