@@ -1,10 +1,8 @@
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_endian.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
