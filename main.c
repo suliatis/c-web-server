@@ -58,10 +58,11 @@ int main() {
   ssize_t bytes_recvd = recv(accepted, request_buffer, 256, 0);
   log_info("Bytes received: %zd", bytes_recvd);
 
-  // GET /file.html
-  char *path = request_buffer + 5; // skipping the method
+  char method[16];
+  char path[256];
+  char protocol[16];
+  sscanf(request_buffer, "%15s /%255s %15s", method, path, protocol);
   char static_path[256];
-  *strchr(path, ' ') = 0;          // remove anything after the first space
   sprintf(static_path, "static/%s", path);
   int open_file = open(static_path, O_RDONLY);
   if (open_file >= 0) {
