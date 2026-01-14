@@ -60,8 +60,10 @@ int main() {
 
   // GET /file.html
   char *path = request_buffer + 5; // skipping the method
+  char static_path[256];
   *strchr(path, ' ') = 0;          // remove anything after the first space
-  int open_file = open(path, O_RDONLY);
+  sprintf(static_path, "static/%s", path);
+  int open_file = open(static_path, O_RDONLY);
   if (open_file >= 0) {
     log_info("Static resource opened: %d, %s", open_file, path);
   } else {
