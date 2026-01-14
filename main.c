@@ -61,7 +61,27 @@ int main() {
   char method[16];
   char path[256];
   char protocol[16];
-  sscanf(request_buffer, "%15s /%255s %15s", method, path, protocol);
+  int words = sscanf(request_buffer, "%15s /%255s %15s", method, path, protocol);
+  if (words < 3) {
+    log_error("Malformed requst: %s", request_buffer);
+
+    char *statusline = "HTTP/1.1 400 Bad Request\r\n";
+    char *contenttype = "Content-Type: text/html\r\n";
+    char *connection = "Connection: close\r\n";
+    char *empty = "\r\n";
+    char body[256];
+    sprintf(body, "Malformed request: %s", request_buffer);
+
+    write(accepted, statusline, strlen(statusline));
+    write(accepted, contenttype, strlen(contenttype));
+    write(accepted, connection, strlen(connection));
+    write(accepted, empty, strlen(empty));
+    write(accepted, body, strlen(body));
+
+    goto close_all;
+
+  }
+  // TODO: handle not allowed method
   char static_path[256];
   sprintf(static_path, "static/%s", path);
   int open_file = open(static_path, O_RDONLY);
