@@ -67,18 +67,30 @@ int main() {
   } else {
     log_error("Opening static resource failed: %s with %s", path,
               strerror(errno));
+
+    char *statusline = "HTTP/1.1 404 Not Found\r\n";
+    char *contenttype = "Content-Type: text/html\r\n";
+    char *connection = "Connection: close\r\n";
+    char *empty = "\r\n";
+    char body[256];
+    sprintf(body, "File not found: %s", path);
+
+    write(accepted, statusline, strlen(statusline));
+    write(accepted, contenttype, strlen(contenttype));
+    write(accepted, connection, strlen(connection));
+    write(accepted, empty, strlen(empty));
+    write(accepted, body, strlen(body));
+
+    goto close_all;
   }
 
   char *statusline = "HTTP/1.1 200 OK\r\n";
   char *contenttype = "Content-Type: text/html\r\n";
-  // TODO: implement content length in bytes
-  // char *contentlength = "Content-Length: 1\r\n";
   char *connection = "Connection: close\r\n";
   char *empty = "\r\n";
 
   write(accepted, statusline, strlen(statusline));
   write(accepted, contenttype, strlen(contenttype));
-  // write(accepted, contentlength, strlen(contentlength));
   write(accepted, connection, strlen(connection));
   write(accepted, empty, strlen(empty));
 
@@ -90,8 +102,10 @@ int main() {
     ssize_t bytes_wrote = write(accepted, read_buffer, bytes_read);
     total_bytes = total_bytes + bytes_wrote;
   }
-  log_info("Total bytes wrote to the client: %d %zd bytes", accepted, total_bytes);
+  log_info("Total bytes wrote to the client: %d %zd bytes", accepted,
+           total_bytes);
 
+close_all:
   close(open_file);
   close(accepted);
   close(sock);
