@@ -61,9 +61,10 @@ int main() {
   char method[16];
   char path[256];
   char protocol[16];
-  int words = sscanf(request_buffer, "%15s /%255s %15s", method, path, protocol);
+  int words =
+      sscanf(request_buffer, "%15s /%255s %15s", method, path, protocol);
   if (words < 3) {
-    log_error("Malformed requst: %s", request_buffer);
+    log_error("Malformed request: %s", request_buffer);
 
     char *statusline = "HTTP/1.1 400 Bad Request\r\n";
     char *contenttype = "Content-Type: text/html\r\n";
@@ -79,57 +80,78 @@ int main() {
     write(accepted, body, strlen(body));
 
     goto close_all;
-
   }
-  // TODO: handle not allowed method
-  char static_path[256];
-  sprintf(static_path, "static/%s", path);
-  int open_file = open(static_path, O_RDONLY);
-  if (open_file >= 0) {
-    log_info("Static resource opened: %d, %s", open_file, path);
-  } else {
-    log_error("Opening static resource failed: %s with %s", path,
-              strerror(errno));
 
-    char *statusline = "HTTP/1.1 404 Not Found\r\n";
+  if (strcmp(method, "GET") == 0) {
+    char static_path[256];
+    sprintf(static_path, "static/%s", path);
+    int open_file = open(static_path, O_RDONLY);
+    if (open_file >= 0) {
+      log_info("Static resource opened: %d, %s", open_file, path);
+    } else {
+      log_error("Opening static resource failed: %s with %s", path,
+                strerror(errno));
+
+      char *statusline = "HTTP/1.1 404 Not Found\r\n";
+      char *contenttype = "Content-Type: text/html\r\n";
+      char *connection = "Connection: close\r\n";
+      char *empty = "\r\n";
+      char body[256];
+      sprintf(body, "File not found: %s", path);
+
+      write(accepted, statusline, strlen(statusline));
+      write(accepted, contenttype, strlen(contenttype));
+      write(accepted, connection, strlen(connection));
+      write(accepted, empty, strlen(empty));
+      write(accepted, body, strlen(body));
+
+      goto close_all;
+    }
+
+    char *statusline = "HTTP/1.1 200 OK\r\n";
     char *contenttype = "Content-Type: text/html\r\n";
     char *connection = "Connection: close\r\n";
     char *empty = "\r\n";
-    char body[256];
-    sprintf(body, "File not found: %s", path);
 
     write(accepted, statusline, strlen(statusline));
     write(accepted, contenttype, strlen(contenttype));
     write(accepted, connection, strlen(connection));
+    write(accepted, empty, strlen(empty));
+
+    char read_buffer[256] = {0};
+    ssize_t bytes_read = 1;
+    ssize_t total_bytes = 0;
+    while (bytes_read > 0) {
+      bytes_read = read(open_file, read_buffer, 256);
+      ssize_t bytes_wrote = write(accepted, read_buffer, bytes_read);
+      total_bytes = total_bytes + bytes_wrote;
+    }
+    log_info("Total bytes wrote to the client: %d %zd bytes", accepted,
+             total_bytes);
+
+    close(open_file);
+  } else {
+    log_error("Method not allowed: %s", method);
+
+    char *statusline = "HTTP/1.1 405 Method Not Allowed\r\n";
+    char *contenttype = "Content-Type: text/html\r\n";
+    char *connection = "Connection: close\r\n";
+    char *allow = "Allow: GET\r\n";
+    char *empty = "\r\n";
+    char body[256];
+    sprintf(body, "Method not allowed: %s", method);
+
+    write(accepted, statusline, strlen(statusline));
+    write(accepted, contenttype, strlen(contenttype));
+    write(accepted, connection, strlen(connection));
+    write(accepted, allow, strlen(allow));
     write(accepted, empty, strlen(empty));
     write(accepted, body, strlen(body));
 
     goto close_all;
   }
 
-  char *statusline = "HTTP/1.1 200 OK\r\n";
-  char *contenttype = "Content-Type: text/html\r\n";
-  char *connection = "Connection: close\r\n";
-  char *empty = "\r\n";
-
-  write(accepted, statusline, strlen(statusline));
-  write(accepted, contenttype, strlen(contenttype));
-  write(accepted, connection, strlen(connection));
-  write(accepted, empty, strlen(empty));
-
-  char read_buffer[256] = {0};
-  ssize_t bytes_read = 1;
-  ssize_t total_bytes = 0;
-  while (bytes_read > 0) {
-    bytes_read = read(open_file, read_buffer, 256);
-    ssize_t bytes_wrote = write(accepted, read_buffer, bytes_read);
-    total_bytes = total_bytes + bytes_wrote;
-  }
-  log_info("Total bytes wrote to the client: %d %zd bytes", accepted,
-           total_bytes);
-
 close_all:
-  close(open_file);
   close(accepted);
   close(sock);
 }
