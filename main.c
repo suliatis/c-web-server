@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +30,80 @@ static void log_error(const char *fmt, ...) {
   va_end(ap);
 }
 
+struct Str {
+  char *data;
+  size_t len;
+  size_t cap;
+};
+
+int str_create(struct Str *str, size_t cap) {
+  char *data = malloc(cap);
+  if (data == NULL) {
+    return -1;
+  }
+
+  memset(data, 0, cap);
+  str->data = data;
+  str->cap = cap;
+  str->len = 0;
+  return 0;
+}
+
+void str_free(struct Str *str) {
+  free(str->data);
+  str->data = NULL;
+  str->len = 0;
+  str->cap = 0;
+}
+
+ssize_t str_append(struct Str *str, const char *bytes, size_t len) {
+  size_t nxt_len = str->len + len;
+  size_t nxt_cap = str->cap;
+  char *nxt_data = str->data;
+
+  if (nxt_len > str->cap) {
+    nxt_cap = str->cap * 2;
+    if (nxt_len > nxt_cap) {
+      nxt_cap = nxt_len * 2;
+    }
+
+    nxt_data = realloc(str->data, nxt_cap);
+    if (nxt_data == NULL) {
+      return -1;
+    }
+  }
+
+  strncpy(&nxt_data[str->len], bytes, len);
+
+  str->len = nxt_len;
+  str->cap = nxt_cap;
+  str->data = nxt_data;
+
+  return len;
+}
+
+ssize_t str_recv(struct Str *str, int fd, size_t len) {
+  char *buffer = malloc(len);
+  if (buffer == NULL) {
+    return -1;
+  }
+
+  ssize_t bytes_recvd = recv(fd, buffer, len - 1, 0);
+  if (bytes_recvd < 0) {
+    free(buffer);
+    return -1;
+  }
+
+  ssize_t bytes_appended = str_append(str, buffer, bytes_recvd);
+  if (bytes_appended < 0) {
+    free(buffer);
+    return -1;
+  }
+
+  free(buffer);
+  return bytes_appended;
+}
+
 int main() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   log_info("Socket created: %d", sock);
@@ -54,24 +129,29 @@ int main() {
     log_error("Accepting connection failed: %s", strerror(errno));
   }
 
-  char request_buffer[256] = {0};
-  ssize_t bytes_recvd = recv(accepted, request_buffer, 256, 0);
-  log_info("Bytes received: %zd", bytes_recvd);
+  struct Str request = {0};
+  str_create(&request, 256);
+  str_recv(&request, accepted, 256);
+
+  // char request_buffer[256] = {0};
+  // ssize_t bytes_recvd = recv(accepted, request_buffer, 255, 0);
+  // request_buffer[bytes_recvd] = '\0';
+  // log_info("Bytes received: %zd", bytes_recvd);
 
   char method[16];
   char path[256];
   char protocol[16];
   int words =
-      sscanf(request_buffer, "%15s /%255s %15s", method, path, protocol);
+      sscanf(request.data, "%15s /%255s %15s", method, path, protocol);
   if (words < 3) {
-    log_error("Malformed request: %s", request_buffer);
+    log_error("Malformed request: %s", request.data);
 
     char *statusline = "HTTP/1.1 400 Bad Request\r\n";
     char *contenttype = "Content-Type: text/html\r\n";
     char *connection = "Connection: close\r\n";
     char *empty = "\r\n";
     char body[256];
-    sprintf(body, "Malformed request: %s", request_buffer);
+    sprintf(body, "Malformed request: %s", request.data);
 
     write(accepted, statusline, strlen(statusline));
     write(accepted, contenttype, strlen(contenttype));
