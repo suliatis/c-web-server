@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +57,7 @@ void str_free(struct Str *str) {
   str->cap = 0;
 }
 
+// TODO: keep str null terminated by reserving an extra byte if necessary
 ssize_t str_append(struct Str *str, const char *bytes, size_t len) {
   size_t nxt_len = str->len + len;
   size_t nxt_cap = str->cap;
@@ -104,6 +106,19 @@ ssize_t str_recv(struct Str *str, int fd, size_t len) {
   return bytes_appended;
 }
 
+bool str_ends_with(const struct Str *str, const char *needle, size_t len) {
+  if (str->len < len) {
+    return false;
+  }
+
+  char *data = &str->data[str->len - len];
+  return memcmp(data, needle, len) == 0;
+}
+
+// TODO: use str struct instead of char
+// TODO: create an str constructor for literals
+static const char HTTP_HEADERS_END[] = "\r\n\r\n";
+
 int main() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   log_info("Socket created: %d", sock);
@@ -129,29 +144,33 @@ int main() {
     log_error("Accepting connection failed: %s", strerror(errno));
   }
 
-  struct Str request = {0};
-  str_create(&request, 256);
-  str_recv(&request, accepted, 256);
-
-  // char request_buffer[256] = {0};
-  // ssize_t bytes_recvd = recv(accepted, request_buffer, 255, 0);
-  // request_buffer[bytes_recvd] = '\0';
-  // log_info("Bytes received: %zd", bytes_recvd);
+  // FIXME: handle str_create and str_recv(0 -> connection closed, -1 -> error)
+  // errors
+  // FIXME: free request_header
+  struct Str request_header = {0};
+  str_create(&request_header, 256);
+  // TODO: while bytes recvd or limit (8192) reached
+  while (!str_ends_with(&request_header, HTTP_HEADERS_END,
+                        strlen(HTTP_HEADERS_END))) {
+    ssize_t bytes_recvd = str_recv(&request_header, accepted, 256);
+    log_info("Reading request header from %d, bytes received: %zd", accepted,
+             bytes_recvd);
+  }
 
   char method[16];
   char path[256];
   char protocol[16];
   int words =
-      sscanf(request.data, "%15s /%255s %15s", method, path, protocol);
+      sscanf(request_header.data, "%15s /%255s %15s", method, path, protocol);
   if (words < 3) {
-    log_error("Malformed request: %s", request.data);
+    log_error("Malformed request: %s", request_header.data);
 
     char *statusline = "HTTP/1.1 400 Bad Request\r\n";
     char *contenttype = "Content-Type: text/html\r\n";
     char *connection = "Connection: close\r\n";
     char *empty = "\r\n";
     char body[256];
-    sprintf(body, "Malformed request: %s", request.data);
+    sprintf(body, "Malformed request: %s", request_header.data);
 
     write(accepted, statusline, strlen(statusline));
     write(accepted, contenttype, strlen(contenttype));
