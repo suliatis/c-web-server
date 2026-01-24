@@ -1,8 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <stdarg.h>
-#include <stdio.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -10,24 +8,7 @@
 #include <unistd.h>
 
 #include "src/str.c"
-
-static void log_info(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  printf("[SERVER:INFO] ");
-  vprintf(fmt, ap);
-  printf("\n");
-  va_end(ap);
-}
-
-static void log_error(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  printf("[SERVER:ERROR] ");
-  vprintf(fmt, ap);
-  printf("\n");
-  va_end(ap);
-}
+#include "src/log.c"
 
 // TODO: use str struct instead of char
 // TODO: create an str constructor for literals
