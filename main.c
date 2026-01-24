@@ -14,7 +14,7 @@
 // TODO: create an str constructor for literals
 static const char HTTP_HEADERS_END[] = "\r\n\r\n";
 
-int main() {
+int main(void) {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   log_info("Socket created: %d", sock);
   int port = 8080;
@@ -117,6 +117,7 @@ int main() {
     ssize_t total_bytes = 0;
     while (bytes_read > 0) {
       bytes_read = read(open_file, read_buffer, 256);
+      // FIXME: check if bytes read is greater or equal to 0 then cast it to unsigned
       ssize_t bytes_wrote = write(accepted, read_buffer, bytes_read);
       total_bytes = total_bytes + bytes_wrote;
     }

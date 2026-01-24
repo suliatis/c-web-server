@@ -1,5 +1,7 @@
+CFLAGS = -Wall -Wextra -Wconversion -Wshadow -pedantic
+
 app:
-	gcc main.c -o server.o
+	gcc $(CFLAGS) main.c -o server.o
 
 serve: app
 	./server.o

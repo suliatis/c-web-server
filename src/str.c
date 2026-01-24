@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/_types/_ssize_t.h>
 #include <sys/socket.h>
 
 struct Str {
@@ -54,7 +55,7 @@ ssize_t str_append(struct Str *str, const char *bytes, size_t len) {
   str->cap = nxt_cap;
   str->data = nxt_data;
 
-  return len;
+  return (ssize_t)len;
 }
 
 ssize_t str_recv(struct Str *str, int fd, size_t len) {
@@ -69,7 +70,7 @@ ssize_t str_recv(struct Str *str, int fd, size_t len) {
     return -1;
   }
 
-  ssize_t bytes_appended = str_append(str, buffer, bytes_recvd);
+  ssize_t bytes_appended = str_append(str, buffer, (size_t)bytes_recvd);
   if (bytes_appended < 0) {
     free(buffer);
     return -1;
