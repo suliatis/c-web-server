@@ -1,7 +1,24 @@
-CFLAGS = -Wall -Wextra -Wconversion -Wshadow -pedantic
+.PHONY = build, app, run, clean
 
-app:
-	gcc $(CFLAGS) main.c -o server.o
+CC = gcc
+CFLAGS = -Wall -Wextra -Wconversion -Wshadow -pedantic -Iinclude -MMD
 
-serve: app
-	./server.o
+SRCS = $(wildcard src/*.c)
+OBJS = $(SRCS:src/%.c=build/%.o)
+
+build:
+	mkdir -p build
+
+build/%.o: src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+app: build $(OBJS)
+	$(CC) $(OBJS) -o build/app
+
+run: app
+	./build/app
+
+clean:
+	rm -rf build
+
+-include $(OBJS:.o=.d)

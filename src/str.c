@@ -1,16 +1,11 @@
-#include <stdbool.h>
-#include <stddef.h>
+#include "str.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_ssize_t.h>
-#include <unistd.h>
 #include <sys/socket.h>
 
-struct Str {
-  char *data;
-  size_t len;
-  size_t cap;
-};
+const struct Str STR_NL = STR("\r\n");
+const struct Str STR_SPC = STR(" ");
 
 int str_create(struct Str *str, size_t cap) {
   char *data = malloc(cap);
@@ -25,10 +20,16 @@ int str_create(struct Str *str, size_t cap) {
   return 0;
 }
 
-#define STR(s) (struct Str){.data = (char *)s, .len = sizeof(s) - 1, .cap = 0}
+void str_free(struct Str *str) {
+  if (str_is_readonly(str)) {
+    return;
+  }
 
-const struct Str STR_NL = STR("\r\n");
-const struct Str STR_SPC = STR(" ");
+  free(str->data);
+  str->data = NULL;
+  str->len = 0;
+  str->cap = 0;
+}
 
 // TODO: add consts for empty and/or null strs
 bool str_is_readonly(const struct Str *str) { return str->cap == 0; }
@@ -63,17 +64,6 @@ size_t str_get_bytes(const struct Str *str, char *out, size_t len) {
   }
   memcpy(out, str->data, min_len);
   return min_len;
-}
-
-void str_free(struct Str *str) {
-  if (str_is_readonly(str)) {
-    return;
-  }
-
-  free(str->data);
-  str->data = NULL;
-  str->len = 0;
-  str->cap = 0;
 }
 
 ssize_t str_copy(struct Str *dst, const struct Str *src) {
@@ -187,7 +177,6 @@ ssize_t str_recv(struct Str *str, int fd, size_t len) {
   return bytes_appended;
 }
 
-
 ssize_t str_read(struct Str *out, int fd, size_t len) {
   char *buffer = malloc(len);
   if (buffer == NULL) {
@@ -221,11 +210,6 @@ ssize_t str_write(const struct Str *str, int fd) {
   free(buffer);
   return bytes_wrote;
 }
-
-struct StrCursor {
-  const char *data;
-  size_t len;
-};
 
 void str_cursor_init(struct StrCursor *cursor, const struct Str *str) {
   cursor->data = str->data;

@@ -3,3 +3,4 @@
 -Wconversion
 -Wshadow
 -pedantic
+-Iinclude

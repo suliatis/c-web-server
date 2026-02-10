@@ -1,14 +1,16 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
 
-#include "src/log.c"
-#include "src/str.c"
+#include "log.h"
+#include "str.h"
 
 static const struct Str HTTP_HEADERS_END = STR("\r\n\r\n");
 static const struct Str HTTP_REQUEST_METHOD_GET = STR("GET");
@@ -52,7 +54,8 @@ int main(void) {
 
   struct StrCursor http_request_header_cursor = {0};
   str_cursor_init(&http_request_header_cursor, &http_request_header);
-  struct Str request_line = str_cursor_next(&http_request_header_cursor, &STR_NL);
+  struct Str request_line =
+      str_cursor_next(&http_request_header_cursor, &STR_NL);
 
   struct StrCursor http_request_line_cursor = {0};
   str_cursor_init(&http_request_line_cursor, &request_line);
@@ -66,30 +69,29 @@ int main(void) {
 
   if (str_is_empty(&http_request_method) || str_is_empty(&http_request_path) ||
       str_is_empty(&http_request_version)) {
-      log_error("Malformed request: %s", http_request_header.data);
+    log_error("Malformed request: %s", http_request_header.data);
 
-      char *statusline = "HTTP/1.1 400 Bad Request\r\n";
-      char *contenttype = "Content-Type: text/html\r\n";
-      char *connection = "Connection: close\r\n";
-      char *empty = "\r\n";
-      char body[256];
-      sprintf(body, "Malformed request: %s", http_request_header.data);
+    char *statusline = "HTTP/1.1 400 Bad Request\r\n";
+    char *contenttype = "Content-Type: text/html\r\n";
+    char *connection = "Connection: close\r\n";
+    char *empty = "\r\n";
+    char body[256];
+    sprintf(body, "Malformed request: %s", http_request_header.data);
 
-      write(accepted, statusline, strlen(statusline));
-      write(accepted, contenttype, strlen(contenttype));
-      write(accepted, connection, strlen(connection));
-      write(accepted, empty, strlen(empty));
-      write(accepted, body, strlen(body));
+    write(accepted, statusline, strlen(statusline));
+    write(accepted, contenttype, strlen(contenttype));
+    write(accepted, connection, strlen(connection));
+    write(accepted, empty, strlen(empty));
+    write(accepted, body, strlen(body));
 
-      goto close_all;
-    }
+    goto close_all;
+  }
 
   if (str_equals(&http_request_method, &HTTP_REQUEST_METHOD_GET)) {
     struct Str static_path = {0};
     struct Str static_path_prefix = STR("static/");
     str_copy(&static_path, &http_request_path);
     str_prepend(&static_path, &static_path_prefix);
-
 
     int open_file = open(static_path.data, O_RDONLY);
     if (open_file >= 0) {
